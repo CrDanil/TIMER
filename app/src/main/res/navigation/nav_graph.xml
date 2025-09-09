@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/timerFragment">
+
+    <fragment
+        android:id="@+id/timerFragment"
+        android:name="com.example.intervaltimer.TimerFragment"
+        android:label="Таймер"
+        tools:layout="@layout/fragment_timer">
+        <action
+            android:id="@+id/action_timer_to_list"
+            app:destination="@id/workoutListFragment" />
+        <argument
+            android:name="workout"
+            app:argType="com.example.intervaltimer.Workout"
+            android:defaultValue="@null" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/workoutListFragment"
+        android:name="com.example.intervaltimer.WorkoutListFragment"
+        android:label="Список тренировок"
+        tools:layout="@layout/fragment_workout_list">
+        <action
+            android:id="@+id/action_list_to_editor"
+            app:destination="@id/workoutEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/workoutEditorFragment"
+        android:name="com.example.intervaltimer.WorkoutEditorFragment"
+        android:label="Редактор тренировок"
+        tools:layout="@layout/fragment_workout_editor">
+        <action
+            android:id="@+id/action_editor_to_timer"
+            app:destination="@id/timerFragment" />
+    </fragment>
+</navigation>
