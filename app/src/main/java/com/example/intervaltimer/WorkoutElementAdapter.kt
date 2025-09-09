@@ -17,9 +17,11 @@ class WorkoutElementAdapter(
         private val nameTextView: TextView = itemView.findViewById(R.id.elementNameTextView)
         private val detailsTextView: TextView = itemView.findViewById(R.id.elementDetailsTextView)
         private val iconImageView: ImageView = itemView.findViewById(R.id.elementIconImageView)
+        private val blockContentTextView: TextView = itemView.findViewById(R.id.blockContentTextView)
 
         fun bind(element: WorkoutElement) {
-            nameTextView.text = element.name
+            // Сначала скрываем дополнительное текстовое поле
+            blockContentTextView.visibility = View.GONE
 
             when (element) {
                 is Exercise -> {
@@ -28,13 +30,37 @@ class WorkoutElementAdapter(
                         ElementType.WORK -> "Работа"
                         ElementType.REST -> "Отдых"
                     }
+                    nameTextView.text = element.name
                     detailsTextView.text = "$typeText - ${formatDuration(element.duration)}"
                     iconImageView.setImageResource(R.drawable.ic_exercise)
                 }
                 is Block -> {
+                    nameTextView.text = element.name
+
+                    // Основная информация о блоке
                     val elementsCount = element.elements.size
-                    detailsTextView.text = "Блок: ${element.rounds} раундов, $elementsCount элементов"
+                    val totalDuration = element.duration
+                    detailsTextView.text = "Блок: ${element.rounds} раундов, $elementsCount элементов, ${formatDuration(totalDuration)}"
                     iconImageView.setImageResource(R.drawable.ic_block)
+
+                    // Дополнительная информация о содержимом блока
+                    if (element.elements.isNotEmpty()) {
+                        blockContentTextView.visibility = View.VISIBLE
+                        val contentText = buildString {
+                            append("Содержимое:\n")
+                            element.elements.forEachIndexed { index, item ->
+                                if (item is Exercise) {
+                                    val typeChar = when (item.type) {
+                                        ElementType.PREP -> "П"
+                                        ElementType.WORK -> "Р"
+                                        ElementType.REST -> "О"
+                                    }
+                                    append("${index + 1}. ${item.name} ($typeChar, ${formatDuration(item.duration)})\n")
+                                }
+                            }
+                        }
+                        blockContentTextView.text = contentText.trim()
+                    }
                 }
             }
 
@@ -44,7 +70,6 @@ class WorkoutElementAdapter(
 
             itemView.setOnLongClickListener {
                 onItemLongClick(element)
-                true // Возвращаем true, чтобы показать, что событие обработано
             }
         }
 

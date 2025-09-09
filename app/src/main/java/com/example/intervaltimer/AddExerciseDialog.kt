@@ -17,6 +17,7 @@ class AddExerciseDialog : DialogFragment() {
     private var _binding: DialogAddExerciseBinding? = null
     private val binding get() = _binding!!
     private var listener: OnExerciseAddedListener? = null
+    private var selectedColor = -1
 
     fun setListener(listener: OnExerciseAddedListener) {
         this.listener = listener
@@ -62,10 +63,11 @@ class AddExerciseDialog : DialogFragment() {
         }
 
         val exercise = Exercise(
-            id = System.currentTimeMillis() + Random.nextLong(1000), // Более уникальный ID
+            id = System.currentTimeMillis() + Random.nextLong(1000),
             name = name,
             type = selectedType,
-            duration = durationMs
+            duration = durationMs,
+            color = selectedColor // Добавляем цвет
         )
 
         listener?.onExerciseAdded(exercise)

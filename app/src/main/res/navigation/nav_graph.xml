@@ -3,21 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/timerFragment">
-
-    <fragment
-        android:id="@+id/timerFragment"
-        android:name="com.example.intervaltimer.TimerFragment"
-        android:label="Таймер"
-        tools:layout="@layout/fragment_timer">
-        <action
-            android:id="@+id/action_timer_to_list"
-            app:destination="@id/workoutListFragment" />
-        <argument
-            android:name="workout"
-            app:argType="com.example.intervaltimer.Workout"
-            android:defaultValue="@null" />
-    </fragment>
+    app:startDestination="@id/workoutListFragment">
 
     <fragment
         android:id="@+id/workoutListFragment"
@@ -27,6 +13,9 @@
         <action
             android:id="@+id/action_list_to_editor"
             app:destination="@id/workoutEditorFragment" />
+        <action
+            android:id="@+id/action_list_to_timer"
+            app:destination="@id/timerFragment" />
     </fragment>
 
     <fragment
@@ -38,4 +27,15 @@
             android:id="@+id/action_editor_to_timer"
             app:destination="@id/timerFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/timerFragment"
+        android:name="com.example.intervaltimer.TimerFragment"
+        android:label="Таймер"
+        tools:layout="@layout/fragment_timer">
+        <action
+            android:id="@+id/action_timer_to_list"
+            app:destination="@id/workoutListFragment" />
+    </fragment>
+
 </navigation>

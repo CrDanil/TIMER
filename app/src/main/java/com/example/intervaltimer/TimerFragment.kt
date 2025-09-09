@@ -1,5 +1,9 @@
 package com.example.intervaltimer
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -8,18 +12,20 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.intervaltimer.databinding.FragmentTimerBinding
-import com.example.intervaltimer.Workout
 
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
     private val binding get() = _binding!!
 
-    private var currentWorkout: Workout? = null
-    private lateinit var timerSteps: List<WorkoutManager.TimerStep>
+    private lateinit var workout: Workout
+    private lateinit var steps: List<WorkoutManager.TimerStep>
     private var currentStepIndex = 0
-    private var countDownTimer: CountDownTimer? = null
-    private var isTimerRunning = false
-    private var timeLeftInMillis: Long = 0
+    private var timer: CountDownTimer? = null
+    private var isPaused = false
+    private var timeRemaining: Long = 0
+    private var soundPool: SoundPool? = null
+    private var soundId: Int = 0
+    private var lastPlayedSecond: Long = -1 // Для отслеживания последней секунды, для которой проигрывался звук
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,31 +38,42 @@ class TimerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Получаем переданную тренировку с явным указанием типа
-        currentWorkout = arguments?.getParcelable("workout", Workout::class.java)
+        // Получаем тренировку из аргументов
+        workout = arguments?.getParcelable("workout") ?: return
 
-        if (currentWorkout == null) {
-            binding.currentStepNameTextView.text = "Тренировка не выбрана"
-            binding.timerText.text = "00:00"
-            binding.nextStepTextView.text = "Выберите тренировку из списка"
-            // Делаем кнопки неактивными
-            binding.startButton.isEnabled = false
-            binding.pauseButton.isEnabled = false
-            binding.stopButton.isEnabled = false
-        } else {
-            timerSteps = WorkoutManager.flattenWorkout(currentWorkout!!)
+        // Преобразуем тренировку в последовательность шагов
+        steps = WorkoutManager.flattenWorkout(workout)
 
-            if (timerSteps.isEmpty()) {
-                binding.currentStepNameTextView.text = "Тренировка пуста"
-                binding.timerText.text = "00:00"
-                return
-            }
+        // Инициализируем SoundPool для звуковых уведомлений
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
 
-            setupTimer()
-        }
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(1)
+            .setAudioAttributes(audioAttributes)
+            .build()
 
-        binding.startButton.setOnClickListener {
+        // Загружаем звуковой файл (добавьте свой файл в папку res/raw)
+        soundId = soundPool?.load(requireContext(), R.raw.beep, 1) ?: 0
+
+        // Настраиваем кнопки
+        setupButtons()
+
+        // Запускаем таймер, если есть шаги
+        if (steps.isNotEmpty()) {
             startTimer()
+        }
+    }
+
+    private fun setupButtons() {
+        binding.startButton.setOnClickListener {
+            if (isPaused) {
+                resumeTimer()
+            } else {
+                startTimer()
+            }
         }
 
         binding.pauseButton.setOnClickListener {
@@ -72,99 +89,158 @@ class TimerFragment : Fragment() {
         }
     }
 
-    private fun setupTimer() {
-        if (currentWorkout == null) return
-
-        currentStepIndex = 0
-        updateStepDisplay()
-        updateButtonVisibility(false)
-    }
-
-    private fun updateStepDisplay() {
-        if (currentStepIndex < timerSteps.size) {
-            val currentStep = timerSteps[currentStepIndex]
-            binding.currentStepNameTextView.text = currentStep.name
-            timeLeftInMillis = currentStep.duration
-            updateCountDownText()
-
-            // Показываем следующий шаг, если есть
-            if (currentStepIndex + 1 < timerSteps.size) {
-                binding.nextStepTextView.text = "Следующее: ${timerSteps[currentStepIndex + 1].name}"
-            } else {
-                binding.nextStepTextView.text = "Следующее: Конец тренировки"
-            }
-        } else {
-            binding.currentStepNameTextView.text = "Тренировка завершена!"
-            binding.timerText.text = "00:00"
-            binding.nextStepTextView.text = ""
-        }
-    }
-
-    private fun updateButtonVisibility(isRunning: Boolean) {
-        if (isRunning) {
-            binding.startButton.visibility = View.GONE
-            binding.pauseButton.visibility = View.VISIBLE
-            binding.stopButton.visibility = View.VISIBLE
-        } else {
-            binding.startButton.visibility = View.VISIBLE
-            binding.pauseButton.visibility = View.GONE
-            binding.stopButton.visibility = View.GONE
-        }
-    }
+    @SuppressLint("SetTextI18n")
     private fun startTimer() {
-        if (isTimerRunning || currentWorkout == null) return
-
-        if (currentStepIndex >= timerSteps.size) {
-            setupTimer()
+        if (currentStepIndex >= steps.size) {
+            // Тренировка завершена
+            binding.timerText.text = "Готово!"
+            return
         }
 
-        countDownTimer = object : CountDownTimer(timeLeftInMillis, 1000) {
+        val currentStep = steps[currentStepIndex]
+        timeRemaining = currentStep.duration
+
+        // Сбрасываем отслеживание последней секунды
+        lastPlayedSecond = -1
+
+        // Обновляем UI
+        binding.currentStepNameTextView.text = currentStep.name
+        updateNextStepsInfo()
+
+        // Настраиваем видимость кнопок
+        binding.startButton.visibility = View.GONE
+        binding.pauseButton.visibility = View.VISIBLE
+        binding.stopButton.visibility = View.VISIBLE
+
+        // Запускаем таймер
+        timer = object : CountDownTimer(timeRemaining, 100) {
             override fun onTick(millisUntilFinished: Long) {
-                timeLeftInMillis = millisUntilFinished
-                updateCountDownText()
+                timeRemaining = millisUntilFinished
+                updateTimerText(millisUntilFinished)
+
+                // Определяем текущую секунду
+                val currentSecond = millisUntilFinished / 1000
+
+                // Звуковые уведомления за 10, 3, 2, 1 секунду (проигрываем только один раз для каждой секунды)
+                if (currentSecond in listOf(10L, 3L, 2L, 1L) && currentSecond != lastPlayedSecond) {
+                    playBeepSound()
+                    lastPlayedSecond = currentSecond
+                }
             }
 
             override fun onFinish() {
-                timeLeftInMillis = 0
-                updateCountDownText()
+                // Переходим к следующему шагу
                 currentStepIndex++
-                if (currentStepIndex < timerSteps.size) {
-                    updateStepDisplay()
-                    startTimer()
+                if (currentStepIndex < steps.size) {
+                    startTimer() // Автоматически запускаем следующий шаг
                 } else {
-                    binding.currentStepNameTextView.text = "Тренировка завершена!"
-                    isTimerRunning = false
-                    updateButtonVisibility(false)
+                    // Тренировка завершена
+                    binding.timerText.text = "Готово!"
+                    binding.startButton.visibility = View.VISIBLE
+                    binding.pauseButton.visibility = View.GONE
+                    binding.stopButton.visibility = View.GONE
                 }
             }
         }.start()
 
-        isTimerRunning = true
-        updateButtonVisibility(true)
+        isPaused = false
     }
 
     private fun pauseTimer() {
-        countDownTimer?.cancel()
-        isTimerRunning = false
-        updateButtonVisibility(false)
+        timer?.cancel()
+        isPaused = true
+
+        // Обновляем видимость кнопок
+        binding.startButton.visibility = View.VISIBLE
+        binding.pauseButton.visibility = View.GONE
+    }
+
+    private fun resumeTimer() {
+        // Запускаем таймер с оставшимся временем
+        timer = object : CountDownTimer(timeRemaining, 100) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeRemaining = millisUntilFinished
+                updateTimerText(millisUntilFinished)
+
+                // Определяем текущую секунду
+                val currentSecond = millisUntilFinished / 1000
+
+                // Звуковые уведомления за 10, 3, 2, 1 секунду (проигрываем только один раз для каждой секунды)
+                if (currentSecond in listOf(10L, 3L, 2L, 1L) && currentSecond != lastPlayedSecond) {
+                    playBeepSound()
+                    lastPlayedSecond = currentSecond
+                }
+            }
+
+            override fun onFinish() {
+                // Переходим к следующему шагу
+                currentStepIndex++
+                if (currentStepIndex < steps.size) {
+                    startTimer()
+                } else {
+                    binding.timerText.text = "Готово!"
+                    binding.startButton.visibility = View.VISIBLE
+                    binding.pauseButton.visibility = View.GONE
+                    binding.stopButton.visibility = View.GONE
+                }
+            }
+        }.start()
+
+        isPaused = false
+        binding.startButton.visibility = View.GONE
+        binding.pauseButton.visibility = View.VISIBLE
     }
 
     private fun stopTimer() {
-        countDownTimer?.cancel()
-        isTimerRunning = false
-        setupTimer()
-        updateButtonVisibility(false)
+        timer?.cancel()
+        currentStepIndex = 0
+        isPaused = false
+
+        // Сбрасываем UI
+        binding.timerText.text = "00:00.0"
+        binding.currentStepNameTextView.text = "Готовность"
+        binding.nextStepTextView.text = "Следующее: "
+
+        // Обновляем видимость кнопок
+        binding.startButton.visibility = View.VISIBLE
+        binding.pauseButton.visibility = View.GONE
+        binding.stopButton.visibility = View.GONE
     }
 
-    private fun updateCountDownText() {
-        val minutes = (timeLeftInMillis / 1000) / 60
-        val seconds = (timeLeftInMillis / 1000) % 60
-        binding.timerText.text = String.format("%02d:%02d", minutes, seconds)
+    private fun updateTimerText(millisUntilFinished: Long) {
+        val totalSeconds = millisUntilFinished / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        val milliseconds = (millisUntilFinished % 1000) / 100
+
+        binding.timerText.text = String.format("%02d:%02d.%01d", minutes, seconds, milliseconds)
+    }
+
+    private fun updateNextStepsInfo() {
+        if (currentStepIndex + 1 < steps.size) {
+            val nextStep = steps[currentStepIndex + 1]
+            binding.nextStepTextView.text = "Следующее: ${nextStep.name} (${formatDuration(nextStep.duration)})"
+        } else {
+            binding.nextStepTextView.text = "Следующее: Конец тренировки"
+        }
+    }
+
+    private fun formatDuration(milliseconds: Long): String {
+        val totalSeconds = milliseconds / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return String.format("%02d:%02d", minutes, seconds)
+    }
+
+    private fun playBeepSound() {
+        soundPool?.play(soundId, 1.0f, 1.0f, 0, 0, 1.0f)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        countDownTimer?.cancel()
+        timer?.cancel()
+        soundPool?.release()
+        soundPool = null
         _binding = null
     }
 }

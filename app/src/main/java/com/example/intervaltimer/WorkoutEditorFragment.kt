@@ -180,8 +180,21 @@ class WorkoutEditorFragment : Fragment() {
     }
 
     private fun showEditBlockDialog(block: Block) {
-        // TODO: Реализовать редактирование блоков
-        android.widget.Toast.makeText(requireContext(), "Редактирование блоков будет реализовано позже", Toast.LENGTH_SHORT).show()
+        val dialog = EditBlockDialog.newInstance(block)
+        dialog.setListener(object : EditBlockDialog.OnBlockEditedListener {
+            override fun onBlockEdited(updatedBlock: Block) {
+                val updatedElements = currentWorkout.elements.map { element ->
+                    if (element is Block && element.id == updatedBlock.id) {
+                        updatedBlock
+                    } else {
+                        element
+                    }
+                }
+                currentWorkout = currentWorkout.copy(elements = updatedElements)
+                updateElementsList()
+            }
+        })
+        dialog.show(parentFragmentManager, "EditBlockDialog")
     }
 
     private fun showDeleteElementDialog(element: WorkoutElement) {
