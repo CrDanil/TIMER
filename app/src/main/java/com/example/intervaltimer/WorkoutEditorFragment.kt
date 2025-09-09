@@ -7,9 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.intervaltimer.databinding.FragmentWorkoutEditorBinding
+import kotlinx.coroutines.launch
 
 class WorkoutEditorFragment : Fragment() {
     private var _binding: FragmentWorkoutEditorBinding? = null
@@ -97,7 +99,10 @@ class WorkoutEditorFragment : Fragment() {
         )
 
         // Сохраняем в менеджер
-        WorkoutManager.saveWorkout(currentWorkout)
+        lifecycleScope.launch {
+            WorkoutManager.saveWorkout(currentWorkout)
+            Toast.makeText(requireContext(), "Тренировка сохранена. Общая длительность: ${formatDuration(totalDuration)}", Toast.LENGTH_SHORT).show()
+        }
 
         // Показываем общую длительность
         Toast.makeText(requireContext(), "Тренировка сохранена. Общая длительность: ${formatDuration(totalDuration)}", Toast.LENGTH_SHORT).show()

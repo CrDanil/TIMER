@@ -1,15 +1,189 @@
 package com.example.intervaltimer
 
-object WorkoutManager {
-    private val workouts = mutableListOf<Workout>()
+import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-    init {
-        // Добавляем примеры тренировок при первом запуске
-        if (workouts.isEmpty()) {
-            workouts.addAll(getSampleWorkouts())
+object WorkoutManager {
+    private lateinit var database: AppDatabase
+    private lateinit var workoutDao: WorkoutDao
+
+    fun init(context: Context) {
+        database = AppDatabase.getInstance(context)
+        workoutDao = database.workoutDao()
+
+        // Добавляем примеры тренировок при первом запуске, если база пуста
+        CoroutineScope(Dispatchers.IO).launch {
+            if (getAllWorkouts().isEmpty()) {
+                getSampleWorkouts().forEach { saveWorkout(it) }
+            }
         }
     }
 
+    suspend fun getAllWorkouts(): List<Workout> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val workoutEntities = workoutDao.getAllWorkouts()
+                workoutEntities.map { workoutEntity ->
+                    val elements = loadWorkoutElements(workoutEntity.id)
+                    Workout(
+                        id = workoutEntity.id,
+                        name = workoutEntity.name,
+                        description = workoutEntity.description,
+                        elements = elements
+                    )
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    private suspend fun loadWorkoutElements(workoutId: Long): List<WorkoutElement> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val elementEntities = workoutDao.getElementsForWorkout(workoutId)
+                elementEntities.map { entity ->
+                    when (entity.type) {
+                        "exercise" -> Exercise(
+                            id = entity.id,
+                            name = entity.name,
+                            type = ElementType.valueOf(entity.elementType!!),
+                            duration = entity.duration,
+                            color = entity.color
+                        )
+                        "block" -> {
+                            val blockElements = loadBlockElements(entity.id)
+                            Block(
+                                id = entity.id,
+                                name = entity.name,
+                                rounds = entity.rounds!!,
+                                elements = blockElements,
+                                duration = entity.duration
+                            )
+                        }
+                        else -> throw IllegalArgumentException("Unknown element type: ${entity.type}")
+                    }
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    private suspend fun loadBlockElements(blockId: Long): List<WorkoutElement> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val elementEntities = workoutDao.getElementsForBlock(blockId)
+                elementEntities.map { entity ->
+                    when (entity.type) {
+                        "exercise" -> Exercise(
+                            id = entity.id,
+                            name = entity.name,
+                            type = ElementType.valueOf(entity.elementType!!),
+                            duration = entity.duration,
+                            color = entity.color
+                        )
+                        else -> throw IllegalArgumentException("Nested blocks are not supported")
+                    }
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun saveWorkout(workout: Workout) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Сохраняем или обновляем тренировку
+                val workoutEntity = WorkoutEntity(workout.id, workout.name, workout.description)
+                if (workoutDao.getWorkoutById(workout.id) == null) {
+                    workoutDao.insertWorkout(workoutEntity)
+                } else {
+                    workoutDao.updateWorkout(workoutEntity)
+                }
+
+                // Удаляем старые элементы
+                workoutDao.deleteElementsForWorkout(workout.id)
+
+                // Сохраняем элементы
+                saveWorkoutElements(workout.id, workout.elements, null)
+            } catch (e: Exception) {
+                // Обработка ошибок
+            }
+        }
+    }
+
+    private suspend fun saveWorkoutElements(workoutId: Long, elements: List<WorkoutElement>, parentId: Long?) {
+        withContext(Dispatchers.IO) {
+            elements.forEach { element ->
+                when (element) {
+                    is Exercise -> {
+                        workoutDao.insertElement(
+                            WorkoutElementEntity(
+                                id = element.id,
+                                workoutId = workoutId,
+                                type = "exercise",
+                                name = element.name,
+                                duration = element.duration,
+                                color = element.color,
+                                elementType = element.type.name,
+                                parentId = parentId
+                            )
+                        )
+                    }
+                    is Block -> {
+                        workoutDao.insertElement(
+                            WorkoutElementEntity(
+                                id = element.id,
+                                workoutId = workoutId,
+                                type = "block",
+                                name = element.name,
+                                duration = element.duration,
+                                rounds = element.rounds,
+                                parentId = parentId
+                            )
+                        )
+                        // Сохраняем элементы блока
+                        saveWorkoutElements(workoutId, element.elements, element.id)
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun deleteWorkout(workout: Workout) {
+        withContext(Dispatchers.IO) {
+            try {
+                workoutDao.deleteElementsForWorkout(workout.id)
+                workoutDao.deleteWorkout(WorkoutEntity(workout.id, workout.name, workout.description))
+            } catch (e: Exception) {
+                // Обработка ошибок
+            }
+        }
+    }
+
+    suspend fun getWorkoutById(id: Long): Workout? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val workoutEntity = workoutDao.getWorkoutById(id) ?: return@withContext null
+                val elements = loadWorkoutElements(workoutEntity.id)
+                Workout(
+                    id = workoutEntity.id,
+                    name = workoutEntity.name,
+                    description = workoutEntity.description,
+                    elements = elements
+                )
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    // Остальные методы (getSampleWorkouts, flattenWorkout) остаются без изменений
     private fun getSampleWorkouts(): List<Workout> {
         return listOf(
             Workout(
@@ -33,27 +207,6 @@ object WorkoutManager {
                 )
             )
         )
-    }
-
-    fun getAllWorkouts(): List<Workout> {
-        return workouts.toList()
-    }
-
-    fun saveWorkout(workout: Workout) {
-        val existingIndex = workouts.indexOfFirst { it.id == workout.id }
-        if (existingIndex != -1) {
-            workouts[existingIndex] = workout
-        } else {
-            workouts.add(workout)
-        }
-    }
-
-    fun deleteWorkout(workout: Workout) {
-        workouts.removeAll { it.id == workout.id }
-    }
-
-    fun getWorkoutById(id: Long): Workout? {
-        return workouts.find { it.id == id }
     }
 
     fun flattenWorkout(workout: Workout): List<TimerStep> {
@@ -89,6 +242,6 @@ object WorkoutManager {
     data class TimerStep(
         val name: String,
         val type: ElementType,
-        val duration: Long // в миллисекундах
+        val duration: Long
     )
 }
