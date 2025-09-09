@@ -2,7 +2,9 @@ package com.example.intervaltimer
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.graphics.Color
 import android.os.Bundle
+import android.widget.Button
 import androidx.fragment.app.DialogFragment
 import com.example.intervaltimer.databinding.DialogAddExerciseBinding
 
@@ -15,6 +17,7 @@ class EditExerciseDialog : DialogFragment() {
     private val binding get() = _binding!!
     private var listener: OnExerciseEditedListener? = null
     private lateinit var exercise: Exercise
+    private var selectedColor: Int = Color.BLACK
 
     companion object {
         fun newInstance(exercise: Exercise): EditExerciseDialog {
@@ -42,6 +45,15 @@ class EditExerciseDialog : DialogFragment() {
             ElementType.REST -> binding.restRadioButton.isChecked = true
         }
 
+        // Устанавливаем цвет
+        selectedColor = exercise.color
+        updateColorPreview()
+
+        // Обработчик кнопки выбора цвета
+        binding.selectColorButton.setOnClickListener {
+            showColorPickerDialog()
+        }
+
         val builder = AlertDialog.Builder(requireActivity())
             .setView(binding.root)
             .setTitle("Редактировать упражнение")
@@ -51,6 +63,22 @@ class EditExerciseDialog : DialogFragment() {
             .setNegativeButton("Отмена", null)
 
         return builder.create()
+    }
+
+    private fun showColorPickerDialog() {
+        val dialog = ColorPickerDialog()
+        dialog.setInitialColor(selectedColor)
+        dialog.setListener(object : ColorPickerDialog.OnColorSelectedListener {
+            override fun onColorSelected(color: Int) {
+                selectedColor = color
+                updateColorPreview()
+            }
+        })
+        dialog.show(parentFragmentManager, "ColorPickerDialog")
+    }
+
+    private fun updateColorPreview() {
+        binding.colorPreview.setBackgroundColor(selectedColor)
     }
 
     private fun saveExerciseChanges() {
@@ -81,7 +109,8 @@ class EditExerciseDialog : DialogFragment() {
         val updatedExercise = exercise.copy(
             name = name,
             type = selectedType,
-            duration = durationMs
+            duration = durationMs,
+            color = selectedColor
         )
 
         listener?.onExerciseEdited(updatedExercise)

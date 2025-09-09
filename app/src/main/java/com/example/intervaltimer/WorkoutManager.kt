@@ -214,7 +214,7 @@ object WorkoutManager {
         for (element in workout.elements) {
             when (element) {
                 is Exercise -> {
-                    stepList.add(TimerStep(element.name, element.type, element.duration))
+                    stepList.add(TimerStep(element.name, element.type, element.duration, element.color))
                 }
                 is Block -> {
                     for (round in 1..element.rounds) {
@@ -224,7 +224,8 @@ object WorkoutManager {
                                     stepList.add(TimerStep(
                                         "${element.name} (Раунд $round/${element.rounds}): ${blockElement.name}",
                                         blockElement.type,
-                                        blockElement.duration
+                                        blockElement.duration,
+                                        blockElement.color
                                     ))
                                 }
                                 is Block -> {
@@ -242,6 +243,7 @@ object WorkoutManager {
     data class TimerStep(
         val name: String,
         val type: ElementType,
-        val duration: Long
+        val duration: Long,
+        val color: Int // Добавляем цвет
     )
 }

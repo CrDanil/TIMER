@@ -12,6 +12,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.intervaltimer.databinding.FragmentTimerBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class TimerFragment : Fragment() {
     private var _binding: FragmentTimerBinding? = null
@@ -25,7 +28,7 @@ class TimerFragment : Fragment() {
     private var timeRemaining: Long = 0
     private var soundPool: SoundPool? = null
     private var soundId: Int = 0
-    private var lastPlayedSecond: Long = -1 // Для отслеживания последней секунды, для которой проигрывался звук
+    private var lastPlayedSecond: Long = -1
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,7 +59,12 @@ class TimerFragment : Fragment() {
             .build()
 
         // Загружаем звуковой файл (добавьте свой файл в папку res/raw)
-        soundId = soundPool?.load(requireContext(), R.raw.beep, 1) ?: 0
+        // Если файла нет, можно использовать системный звук или оставить как есть
+        soundId = try {
+            soundPool?.load(requireContext(), R.raw.beep, 1) ?: 0
+        } catch (e: Exception) {
+            0
+        }
 
         // Настраиваем кнопки
         setupButtons()
@@ -103,8 +111,11 @@ class TimerFragment : Fragment() {
         // Сбрасываем отслеживание последней секунды
         lastPlayedSecond = -1
 
-        // Обновляем UI
+        // Обновляем UI с цветом упражнения
         binding.currentStepNameTextView.text = currentStep.name
+        binding.currentStepNameTextView.setTextColor(currentStep.color)
+        binding.timerText.setTextColor(currentStep.color)
+
         updateNextStepsInfo()
 
         // Настраиваем видимость кнопок
@@ -201,6 +212,11 @@ class TimerFragment : Fragment() {
         binding.currentStepNameTextView.text = "Готовность"
         binding.nextStepTextView.text = "Следующее: "
 
+        // Сбрасываем цвета к значениям по умолчанию
+        val defaultColor = resources.getColor(android.R.color.black, null)
+        binding.currentStepNameTextView.setTextColor(defaultColor)
+        binding.timerText.setTextColor(defaultColor)
+
         // Обновляем видимость кнопок
         binding.startButton.visibility = View.VISIBLE
         binding.pauseButton.visibility = View.GONE
@@ -220,8 +236,15 @@ class TimerFragment : Fragment() {
         if (currentStepIndex + 1 < steps.size) {
             val nextStep = steps[currentStepIndex + 1]
             binding.nextStepTextView.text = "Следующее: ${nextStep.name} (${formatDuration(nextStep.duration)})"
+
+            // Устанавливаем цвет следующего упражнения
+            binding.nextStepTextView.setTextColor(nextStep.color)
         } else {
             binding.nextStepTextView.text = "Следующее: Конец тренировки"
+
+            // Сбрасываем цвет к значению по умолчанию
+            val defaultColor = resources.getColor(android.R.color.black, null)
+            binding.nextStepTextView.setTextColor(defaultColor)
         }
     }
 
@@ -233,7 +256,11 @@ class TimerFragment : Fragment() {
     }
 
     private fun playBeepSound() {
-        soundPool?.play(soundId, 1.0f, 1.0f, 0, 0, 1.0f)
+        try {
+            soundPool?.play(soundId, 1.0f, 1.0f, 0, 0, 1.0f)
+        } catch (e: Exception) {
+            // Игнорируем ошибки воспроизведения звука
+        }
     }
 
     override fun onDestroyView() {

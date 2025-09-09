@@ -2,8 +2,9 @@ package com.example.intervaltimer
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.graphics.Color
 import android.os.Bundle
-import android.widget.EditText
+import android.widget.Button
 import android.widget.RadioButton
 import androidx.fragment.app.DialogFragment
 import com.example.intervaltimer.databinding.DialogAddExerciseBinding
@@ -17,7 +18,7 @@ class AddExerciseDialog : DialogFragment() {
     private var _binding: DialogAddExerciseBinding? = null
     private val binding get() = _binding!!
     private var listener: OnExerciseAddedListener? = null
-    private var selectedColor = -1
+    private var selectedColor: Int = Color.BLACK
 
     fun setListener(listener: OnExerciseAddedListener) {
         this.listener = listener
@@ -25,6 +26,14 @@ class AddExerciseDialog : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         _binding = DialogAddExerciseBinding.inflate(requireActivity().layoutInflater)
+
+        // Настройка предпросмотра цвета
+        updateColorPreview()
+
+        // Обработчик кнопки выбора цвета
+        binding.selectColorButton.setOnClickListener {
+            showColorPickerDialog()
+        }
 
         val builder = AlertDialog.Builder(requireActivity())
             .setView(binding.root)
@@ -35,6 +44,22 @@ class AddExerciseDialog : DialogFragment() {
             .setNegativeButton("Отмена", null)
 
         return builder.create()
+    }
+
+    private fun showColorPickerDialog() {
+        val dialog = ColorPickerDialog()
+        dialog.setInitialColor(selectedColor)
+        dialog.setListener(object : ColorPickerDialog.OnColorSelectedListener {
+            override fun onColorSelected(color: Int) {
+                selectedColor = color
+                updateColorPreview()
+            }
+        })
+        dialog.show(parentFragmentManager, "ColorPickerDialog")
+    }
+
+    private fun updateColorPreview() {
+        binding.colorPreview.setBackgroundColor(selectedColor)
     }
 
     private fun addExercise() {
@@ -67,7 +92,7 @@ class AddExerciseDialog : DialogFragment() {
             name = name,
             type = selectedType,
             duration = durationMs,
-            color = selectedColor // Добавляем цвет
+            color = selectedColor
         )
 
         listener?.onExerciseAdded(exercise)
