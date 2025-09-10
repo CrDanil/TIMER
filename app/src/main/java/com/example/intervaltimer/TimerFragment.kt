@@ -2,6 +2,7 @@ package com.example.intervaltimer
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Bundle
@@ -31,10 +32,12 @@ class TimerFragment : Fragment() {
     private var timeRemaining: Long = 0
     private var soundPool: SoundPool? = null
     private var soundId: Int = 0
+    private var lastSecondSoundId: Int = 0  // Добавляем ID для второго звука
     private var lastPlayedSecond: Long = -1
     private var totalWorkoutTime: Long = 0
     private var precomputedSums: MutableList<Long>? = null
     private lateinit var wakeLock: PowerManager.WakeLock
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -74,6 +77,12 @@ class TimerFragment : Fragment() {
         // Загружаем звуковой файл
         soundId = try {
             soundPool?.load(requireContext(), R.raw.beep, 1) ?: 0
+        } catch (e: Exception) {
+            0
+        }
+        // Загружаем второй звук для последней секунды
+        lastSecondSoundId = try {
+            soundPool?.load(requireContext(), R.raw.last_beep, 1) ?: 0
         } catch (e: Exception) {
             0
         }
@@ -138,6 +147,8 @@ class TimerFragment : Fragment() {
         binding.currentStepNameTextView.text = currentStep.name
         binding.currentStepNameTextView.setTextColor(currentStep.color)
         binding.timerText.setTextColor(currentStep.color)
+        binding.nextStepTextView1.visibility = View.VISIBLE //САМ
+        binding.nextStepTextView2.visibility = View.VISIBLE //САМ
 
         updateNextStepsInfo()
         updateTotalRemainingTime()
@@ -158,9 +169,25 @@ class TimerFragment : Fragment() {
                 val currentSecond = millisUntilFinished / 1000
 
                 // Звуковые уведомления за 10, 3, 2, 1 секунду (проигрываем только один раз для каждой секунды)
-                if (currentSecond in listOf(10L, 3L, 2L, 1L) && currentSecond != lastPlayedSecond) {
-                    playBeepSound()
-                    lastPlayedSecond = currentSecond
+                if (currentSecond != lastPlayedSecond) {
+                    when (currentSecond) {
+                        10L, 3L, 2L, 1L -> {
+                            playBeepSound()  // Обычный звук
+                            lastPlayedSecond = currentSecond
+                        }
+                        0L -> {
+                            playLastSecondSound()  // Особый звук для последней секунды
+                            lastPlayedSecond = currentSecond
+                        }
+                    }
+                }
+            }
+
+            private fun playLastSecondSound() {
+                try {
+                    soundPool?.play(lastSecondSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
+                } catch (e: Exception) {
+                    // Игнорируем ошибки воспроизведения звука
                 }
             }
 
@@ -172,10 +199,14 @@ class TimerFragment : Fragment() {
                 } else {
                     // Тренировка завершена
                     binding.timerText.text = "Готово!"
+                    binding.timerText.setTextColor(Color.WHITE) //САМ
+                    binding.currentStepNameTextView.visibility = View.GONE //САМ
+                    binding.nextStepTextView1.visibility = View.GONE //САМ
+                    binding.nextStepTextView2.visibility = View.GONE //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
-                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+                    binding.totalRemainingTimeTextView.text = "Всего: 00:00"
 
                     // Освобождаем ресурсы
                     releaseResources()
@@ -218,9 +249,25 @@ class TimerFragment : Fragment() {
                 val currentSecond = millisUntilFinished / 1000
 
                 // Звуковые уведомления за 10, 3, 2, 1 секунду (проигрываем только один раз для каждой секунды)
-                if (currentSecond in listOf(10L, 3L, 2L, 1L) && currentSecond != lastPlayedSecond) {
-                    playBeepSound()
-                    lastPlayedSecond = currentSecond
+                if (currentSecond != lastPlayedSecond) {
+                    when (currentSecond) {
+                        10L, 3L, 2L, 1L -> {
+                            playBeepSound()  // Обычный звук
+                            lastPlayedSecond = currentSecond
+                        }
+                        0L -> {
+                            playLastSecondSound()  // Особый звук для последней секунды
+                            lastPlayedSecond = currentSecond
+                        }
+                    }
+                }
+            }
+
+            private fun playLastSecondSound() {
+                try {
+                    soundPool?.play(lastSecondSoundId, 1.0f, 1.0f, 0, 0, 1.0f)
+                } catch (e: Exception) {
+                    // Игнорируем ошибки воспроизведения звука
                 }
             }
 
@@ -231,10 +278,14 @@ class TimerFragment : Fragment() {
                     startTimer()
                 } else {
                     binding.timerText.text = "Готово!"
+                    binding.timerText.setTextColor(Color.WHITE) //САМ
+                    binding.currentStepNameTextView.visibility = View.GONE //САМ
+                    binding.nextStepTextView1.visibility = View.GONE //САМ
+                    binding.nextStepTextView2.visibility = View.GONE //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
-                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+                    binding.totalRemainingTimeTextView.text = "Всего: 00:00"
 
                     // Освобождаем ресурсы
                     releaseResources()
@@ -259,21 +310,25 @@ class TimerFragment : Fragment() {
         // Сбрасываем UI
         binding.timerText.text = "00:00"
         binding.currentStepNameTextView.text = "Готовность"
-        binding.nextStepTextView1.text = "Следующее: "
-        binding.nextStepTextView2.text = "После: "
+        //binding.timerText.setTextColor(Color.WHITE) //САМ
+        //binding.currentStepNameTextView.setTextColor(Color.WHITE) //САМ
+        //binding.nextStepTextView1.text = "Следующее: "
+        //binding.nextStepTextView2.text = "После: "
+        binding.nextStepTextView1.visibility = View.GONE //САМ
+        binding.nextStepTextView2.visibility = View.GONE //САМ
 
         // Сбрасываем цвета к значениям по умолчанию
-        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
+        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.white)
         binding.currentStepNameTextView.setTextColor(defaultColor)
         binding.timerText.setTextColor(defaultColor)
-        binding.nextStepTextView1.setTextColor(defaultColor)
-        binding.nextStepTextView2.setTextColor(defaultColor)
+        binding.nextStepTextView1.setTextColor(Color.WHITE)
+        binding.nextStepTextView2.setTextColor(Color.WHITE)
 
         // Сбрасываем общее время
         if (steps.isNotEmpty()) {
-            binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(totalWorkoutTime)}"
+            binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(totalWorkoutTime)}"
         } else {
-            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
         }
 
         // Обновляем видимость кнопок
@@ -302,7 +357,7 @@ class TimerFragment : Fragment() {
 
     private fun updateTotalRemainingTime() {
         if (currentStepIndex >= steps.size) {
-            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
             return
         }
 
@@ -312,30 +367,39 @@ class TimerFragment : Fragment() {
             0
         }
 
-        binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(remainingTime)}"
+        binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(remainingTime)}"
     }
 
     private fun updateNextStepsInfo() {
         val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
 
-        // Первое следующее упражнение
         if (currentStepIndex + 1 < steps.size) {
+            // Следующее упражнение
             val nextStep1 = steps[currentStepIndex + 1]
             binding.nextStepTextView1.text = "Следующее: ${nextStep1.name} (${formatDuration(nextStep1.duration)})"
             binding.nextStepTextView1.setTextColor(nextStep1.color)
-        } else {
-            binding.nextStepTextView1.text = "Следующее: Конец тренировки"
-            binding.nextStepTextView1.setTextColor(defaultColor)
-        }
+            binding.nextStepTextView1.visibility = View.VISIBLE
 
-        // Второе следующее упражнение
-        if (currentStepIndex + 2 < steps.size) {
-            val nextStep2 = steps[currentStepIndex + 2]
-            binding.nextStepTextView2.text = "После: ${nextStep2.name} (${formatDuration(nextStep2.duration)})"
-            binding.nextStepTextView2.setTextColor(nextStep2.color)
+            // Второе следующее упражнение или конец тренировки
+            if (currentStepIndex + 2 < steps.size) {
+                val nextStep2 = steps[currentStepIndex + 2]
+                binding.nextStepTextView2.text = "После: ${nextStep2.name} (${formatDuration(nextStep2.duration)})"
+                binding.nextStepTextView2.setTextColor(nextStep2.color)
+                binding.nextStepTextView2.visibility = View.VISIBLE
+            } else {
+                // Предпоследнее упражнение — после него конец
+                binding.nextStepTextView2.text = "После: Конец тренировки"
+                binding.nextStepTextView2.setTextColor(Color.WHITE)
+                binding.nextStepTextView2.visibility = View.VISIBLE
+            }
         } else {
-            binding.nextStepTextView2.text = "После: Конец тренировки"
-            binding.nextStepTextView2.setTextColor(defaultColor)
+            // Последнее упражнение
+            binding.nextStepTextView1.text = "Следующее: Конец тренировки"
+            binding.nextStepTextView1.setTextColor(Color.WHITE)
+            binding.nextStepTextView1.visibility = View.VISIBLE
+
+            // Скрываем второй текст
+            binding.nextStepTextView2.visibility = View.GONE
         }
     }
 

@@ -205,6 +205,24 @@ object WorkoutManager {
                     Exercise(202, "Спринт", ElementType.WORK, 30000),
                     Exercise(203, "Ходьба", ElementType.REST, 30000)
                 )
+            ),
+            Workout(
+                id = 3,
+                name = "Работа с грушей",
+                description = "Стандартная работа по груше 3 раунда х 3 минуты",
+                elements = listOf(
+                    Block(
+                        id = 301,
+                        name = "Основной",
+                        rounds = 3,
+                        elements = listOf(
+                            Exercise(302, "Подготовка", ElementType.PREP, 10000),
+                            Exercise(303, "Работа", ElementType.WORK, 180000), // 3 минуты = 180000 мс
+                            Exercise(304, "Перерыв", ElementType.REST, 60000)  // 1 минута = 60000 мс
+                        ),
+                        duration = (180000 + 60000) * 3 // Общая длительность блока: (3+1)*3 = 12 минут
+                    )
+                )
             )
         )
     }
