@@ -2,14 +2,15 @@ package com.example.intervaltimer
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -33,6 +34,7 @@ class TimerFragment : Fragment() {
     private var lastPlayedSecond: Long = -1
     private var totalWorkoutTime: Long = 0
     private var precomputedSums: MutableList<Long>? = null
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -76,6 +78,13 @@ class TimerFragment : Fragment() {
             0
         }
 
+        // Создаем WakeLock чтобы экран не гас
+        val powerManager = requireContext().getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "IntervalTimer::ScreenLock"
+        )
+
         // Настраиваем кнопки
         setupButtons()
 
@@ -112,12 +121,12 @@ class TimerFragment : Fragment() {
         if (currentStepIndex >= steps.size) {
             // Тренировка завершена
             binding.timerText.text = "Готово!"
-            binding.timerText.setTextColor(Color.WHITE) //САМ
-            binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
-            binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
-            binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
             return
         }
+
+        // Удерживаем экран включенным
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
 
         val currentStep = steps[currentStepIndex]
         timeRemaining = currentStep.duration
@@ -163,14 +172,13 @@ class TimerFragment : Fragment() {
                 } else {
                     // Тренировка завершена
                     binding.timerText.text = "Готово!"
-                    binding.timerText.setTextColor(Color.WHITE) //САМ
-                    binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
-                    binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
-                    binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
-                    binding.totalRemainingTimeTextView.text = "Всего: 00:00"
+                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+
+                    // Освобождаем ресурсы
+                    releaseResources()
                 }
             }
         }.start()
@@ -182,6 +190,12 @@ class TimerFragment : Fragment() {
         timer?.cancel()
         isPaused = true
 
+        // Освобождаем WakeLock при паузе
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
+        requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         // Обновляем видимость кнопок
         binding.startButton.visibility = View.VISIBLE
         binding.pauseButton.visibility = View.GONE
@@ -189,6 +203,10 @@ class TimerFragment : Fragment() {
     }
 
     private fun resumeTimer() {
+        // Удерживаем экран включенным снова
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
+
         // Запускаем таймер с оставшимся временем
         timer = object : CountDownTimer(timeRemaining, 100) {
             override fun onTick(millisUntilFinished: Long) {
@@ -212,15 +230,14 @@ class TimerFragment : Fragment() {
                 if (currentStepIndex < steps.size) {
                     startTimer()
                 } else {
-                    binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
                     binding.timerText.text = "Готово!"
-                    binding.timerText.setTextColor(Color.WHITE) //САМ
-                    binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
-                    binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
                     binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+
+                    // Освобождаем ресурсы
+                    releaseResources()
                 }
             }
         }.start()
@@ -236,15 +253,17 @@ class TimerFragment : Fragment() {
         currentStepIndex = 0
         isPaused = false
 
+        // Освобождаем ресурсы
+        releaseResources()
+
         // Сбрасываем UI
-        binding.timerText.text = "00:00" //.0" САМ
+        binding.timerText.text = "00:00"
         binding.currentStepNameTextView.text = "Готовность"
-        //binding.currentStepNameTextView.setTextColor(Color.WHITE) //САМ
         binding.nextStepTextView1.text = "Следующее: "
         binding.nextStepTextView2.text = "После: "
 
         // Сбрасываем цвета к значениям по умолчанию
-        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.white)
+        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
         binding.currentStepNameTextView.setTextColor(defaultColor)
         binding.timerText.setTextColor(defaultColor)
         binding.nextStepTextView1.setTextColor(defaultColor)
@@ -252,9 +271,9 @@ class TimerFragment : Fragment() {
 
         // Сбрасываем общее время
         if (steps.isNotEmpty()) {
-            binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(totalWorkoutTime)}"
+            binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(totalWorkoutTime)}"
         } else {
-            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
+            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
         }
 
         // Обновляем видимость кнопок
@@ -263,20 +282,27 @@ class TimerFragment : Fragment() {
         binding.stopButton.visibility = View.GONE
     }
 
+    private fun releaseResources() {
+        // Освобождаем WakeLock
+        if (::wakeLock.isInitialized && wakeLock.isHeld) {
+            wakeLock.release()
+        }
+
+        // Убираем флаг удержания экрана
+        requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
     private fun updateTimerText(millisUntilFinished: Long) {
         val totalSeconds = millisUntilFinished / 1000
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
-        val milliseconds = (millisUntilFinished % 1000) / 100
 
-        // Фиксируем ширину текста, используя моноширинный шрифт
-        //binding.timerText.text = String.format("%02d:%02d.%01d", minutes, seconds, milliseconds) // с милисекундами, десятыми
-        binding.timerText.text = String.format("%02d:%02d", minutes, seconds) // САМ
+        binding.timerText.text = String.format("%02d:%02d", minutes, seconds)
     }
 
     private fun updateTotalRemainingTime() {
         if (currentStepIndex >= steps.size) {
-            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
+            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
             return
         }
 
@@ -286,7 +312,7 @@ class TimerFragment : Fragment() {
             0
         }
 
-        binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(remainingTime)}"
+        binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(remainingTime)}"
     }
 
     private fun updateNextStepsInfo() {
@@ -299,7 +325,7 @@ class TimerFragment : Fragment() {
             binding.nextStepTextView1.setTextColor(nextStep1.color)
         } else {
             binding.nextStepTextView1.text = "Следующее: Конец тренировки"
-            binding.nextStepTextView1.setTextColor(Color.WHITE)
+            binding.nextStepTextView1.setTextColor(defaultColor)
         }
 
         // Второе следующее упражнение
@@ -309,7 +335,7 @@ class TimerFragment : Fragment() {
             binding.nextStepTextView2.setTextColor(nextStep2.color)
         } else {
             binding.nextStepTextView2.text = "После: Конец тренировки"
-            binding.nextStepTextView2.setTextColor(Color.WHITE)
+            binding.nextStepTextView2.setTextColor(defaultColor)
         }
     }
 
@@ -333,6 +359,10 @@ class TimerFragment : Fragment() {
         timer?.cancel()
         soundPool?.release()
         soundPool = null
+
+        // Освобождаем ресурсы при уничтожении view
+        releaseResources()
+
         _binding = null
     }
 }
