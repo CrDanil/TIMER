@@ -73,11 +73,11 @@ class EditBlockDialog : DialogFragment() {
     }
 
     private fun saveBlockChanges() {
-        val name = binding.blockNameEditText.text.toString()
+        var name = binding.blockNameEditText.text.toString()
         val roundsText = binding.blockRoundsEditText.text.toString()
 
-        if (name.isBlank() || roundsText.isBlank()) {
-            return
+        if (name.isBlank()) {
+            name = "Блок"
         }
 
         val rounds = roundsText.toIntOrNull() ?: return

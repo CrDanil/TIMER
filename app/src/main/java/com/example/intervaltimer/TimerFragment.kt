@@ -9,6 +9,7 @@ import android.os.CountDownTimer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.intervaltimer.databinding.FragmentTimerBinding
@@ -58,8 +59,7 @@ class TimerFragment : Fragment() {
             .setAudioAttributes(audioAttributes)
             .build()
 
-        // Загружаем звуковой файл (добавьте свой файл в папку res/raw)
-        // Если файла нет, можно использовать системный звук или оставить как есть
+        // Загружаем звуковой файл
         soundId = try {
             soundPool?.load(requireContext(), R.raw.beep, 1) ?: 0
         } catch (e: Exception) {
@@ -121,7 +121,7 @@ class TimerFragment : Fragment() {
         // Настраиваем видимость кнопок
         binding.startButton.visibility = View.GONE
         binding.pauseButton.visibility = View.VISIBLE
-        binding.stopButton.visibility = View.VISIBLE
+        binding.stopButton.visibility = View.GONE // Скрываем кнопку стоп до паузы
 
         // Запускаем таймер
         timer = object : CountDownTimer(timeRemaining, 100) {
@@ -164,6 +164,7 @@ class TimerFragment : Fragment() {
         // Обновляем видимость кнопок
         binding.startButton.visibility = View.VISIBLE
         binding.pauseButton.visibility = View.GONE
+        binding.stopButton.visibility = View.VISIBLE // Показываем кнопку стоп при паузе
     }
 
     private fun resumeTimer() {
@@ -200,6 +201,7 @@ class TimerFragment : Fragment() {
         isPaused = false
         binding.startButton.visibility = View.GONE
         binding.pauseButton.visibility = View.VISIBLE
+        binding.stopButton.visibility = View.GONE // Снова скрываем кнопку стоп
     }
 
     private fun stopTimer() {
@@ -210,12 +212,15 @@ class TimerFragment : Fragment() {
         // Сбрасываем UI
         binding.timerText.text = "00:00.0"
         binding.currentStepNameTextView.text = "Готовность"
-        binding.nextStepTextView.text = "Следующее: "
+        binding.nextStepTextView1.text = "Следующее: "
+        binding.nextStepTextView2.text = "После: "
 
         // Сбрасываем цвета к значениям по умолчанию
-        val defaultColor = resources.getColor(android.R.color.black, null)
+        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
         binding.currentStepNameTextView.setTextColor(defaultColor)
         binding.timerText.setTextColor(defaultColor)
+        binding.nextStepTextView1.setTextColor(defaultColor)
+        binding.nextStepTextView2.setTextColor(defaultColor)
 
         // Обновляем видимость кнопок
         binding.startButton.visibility = View.VISIBLE
@@ -233,18 +238,26 @@ class TimerFragment : Fragment() {
     }
 
     private fun updateNextStepsInfo() {
+        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
+
+        // Первое следующее упражнение
         if (currentStepIndex + 1 < steps.size) {
-            val nextStep = steps[currentStepIndex + 1]
-            binding.nextStepTextView.text = "Следующее: ${nextStep.name} (${formatDuration(nextStep.duration)})"
-
-            // Устанавливаем цвет следующего упражнения
-            binding.nextStepTextView.setTextColor(nextStep.color)
+            val nextStep1 = steps[currentStepIndex + 1]
+            binding.nextStepTextView1.text = "Следующее: ${nextStep1.name} (${formatDuration(nextStep1.duration)})"
+            binding.nextStepTextView1.setTextColor(nextStep1.color)
         } else {
-            binding.nextStepTextView.text = "Следующее: Конец тренировки"
+            binding.nextStepTextView1.text = "Следующее: Конец тренировки"
+            binding.nextStepTextView1.setTextColor(defaultColor)
+        }
 
-            // Сбрасываем цвет к значению по умолчанию
-            val defaultColor = resources.getColor(android.R.color.black, null)
-            binding.nextStepTextView.setTextColor(defaultColor)
+        // Второе следующее упражнение
+        if (currentStepIndex + 2 < steps.size) {
+            val nextStep2 = steps[currentStepIndex + 2]
+            binding.nextStepTextView2.text = "После: ${nextStep2.name} (${formatDuration(nextStep2.duration)})"
+            binding.nextStepTextView2.setTextColor(nextStep2.color)
+        } else {
+            binding.nextStepTextView2.text = "После: Конец тренировки"
+            binding.nextStepTextView2.setTextColor(defaultColor)
         }
     }
 

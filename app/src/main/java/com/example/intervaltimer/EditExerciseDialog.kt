@@ -82,18 +82,32 @@ class EditExerciseDialog : DialogFragment() {
     }
 
     private fun saveExerciseChanges() {
-        val name = binding.exerciseNameEditText.text.toString()
+        var name = binding.exerciseNameEditText.text.toString()
         val minutesText = binding.exerciseMinutesEditText.text.toString()
         val secondsText = binding.exerciseSecondsEditText.text.toString()
 
-        if (name.isBlank() || (minutesText.isBlank() && secondsText.isBlank())) {
+        // Если название пустое, задаем значение по умолчанию
+        if (name.isBlank()) {
+            name = "Упражнение"
+        }
+
+        // Валидация минут и секунд
+        val minutes = minutesText.toLongOrNull() ?: 0L
+        val seconds = secondsText.toLongOrNull() ?: 0L
+
+        // Проверяем ограничения
+        if (minutes > 99) {
+            binding.exerciseMinutesEditText.error = "Максимум 99 минут"
             return
         }
 
-        val minutes = minutesText.toLongOrNull() ?: 0
-        val seconds = secondsText.toLongOrNull() ?: 0
+        if (seconds > 59) {
+            binding.exerciseSecondsEditText.error = "Максимум 59 секунд"
+            return
+        }
 
         if (minutes == 0L && seconds == 0L) {
+            binding.exerciseMinutesEditText.error = "Введите время"
             return
         }
 

@@ -37,7 +37,9 @@
                 android:layout_height="wrap_content"
                 android:hint="Минуты"
                 android:inputType="number"
-                android:maxLength="2"/>
+                android:maxLength="2"
+                android:text="00"
+                android:digits="0123456789"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -62,11 +64,21 @@
                 android:layout_height="wrap_content"
                 android:hint="Секунды"
                 android:inputType="number"
-                android:maxLength="2"/>
+                android:maxLength="2"
+                android:text="00"
+                android:digits="0123456789"/>
 
         </com.google.android.material.textfield.TextInputLayout>
 
     </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Формат: MM:SS (макс. 99:59)"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="12sp" />
 
     <TextView
         android:layout_width="wrap_content"

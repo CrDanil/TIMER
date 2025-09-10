@@ -35,13 +35,16 @@ class AddBlockDialog : DialogFragment() {
     }
 
     private fun addBlock() {
-        val name = binding.blockNameEditText.text.toString()
+        var name = binding.blockNameEditText.text.toString()
         val roundsText = binding.blockRoundsEditText.text.toString()
 
-        if (name.isBlank() || roundsText.isBlank()) {
-            return
+        if (name.isBlank()) {
+            name = "Блок"
         }
 
+        if (roundsText.isBlank()) {
+            return
+        }
         val rounds = roundsText.toIntOrNull() ?: return
 
         if (rounds <= 0) {

@@ -24,12 +24,22 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp"/>
 
+    <!-- Добавляем второе следующее упражнение -->
     <TextView
-        android:id="@+id/nextStepTextView"
+        android:id="@+id/nextStepTextView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Следующее: "
         android:textSize="18sp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/nextStepTextView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="После: "
+        android:textSize="16sp"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp"/>
 
