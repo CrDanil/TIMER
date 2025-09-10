@@ -17,10 +17,18 @@ class MainActivity : AppCompatActivity() {
         // Инициализируем базу данных
         WorkoutManager.init(this)
 
+        // Инициализируем звуковой менеджер
+        SoundManager.init(this)
+
         // Настройка навигации
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
         setupActionBarWithNavController(navController)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SoundManager.release()
     }
 
     override fun onSupportNavigateUp(): Boolean {

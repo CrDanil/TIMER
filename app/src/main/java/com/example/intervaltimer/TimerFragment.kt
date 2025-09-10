@@ -30,6 +30,8 @@ class TimerFragment : Fragment() {
     private var soundPool: SoundPool? = null
     private var soundId: Int = 0
     private var lastPlayedSecond: Long = -1
+    private var totalWorkoutTime: Long = 0
+    private var precomputedSums: MutableList<Long>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,6 +49,13 @@ class TimerFragment : Fragment() {
 
         // Преобразуем тренировку в последовательность шагов
         steps = WorkoutManager.flattenWorkout(workout)
+
+        // Предварительно вычисляем общее время тренировки
+        precomputedSums = MutableList(steps.size) { 0L }
+        for (i in steps.size - 1 downTo 0) {
+            precomputedSums!![i] = steps[i].duration + (if (i < steps.size - 1) precomputedSums!![i + 1] else 0)
+        }
+        totalWorkoutTime = if (steps.isNotEmpty()) precomputedSums!![0] else 0L
 
         // Инициализируем SoundPool для звуковых уведомлений
         val audioAttributes = AudioAttributes.Builder()
@@ -117,17 +126,19 @@ class TimerFragment : Fragment() {
         binding.timerText.setTextColor(currentStep.color)
 
         updateNextStepsInfo()
+        updateTotalRemainingTime()
 
         // Настраиваем видимость кнопок
         binding.startButton.visibility = View.GONE
         binding.pauseButton.visibility = View.VISIBLE
-        binding.stopButton.visibility = View.GONE // Скрываем кнопку стоп до паузы
+        binding.stopButton.visibility = View.GONE // Кнопка стоп скрыта до паузы
 
         // Запускаем таймер
         timer = object : CountDownTimer(timeRemaining, 100) {
             override fun onTick(millisUntilFinished: Long) {
                 timeRemaining = millisUntilFinished
                 updateTimerText(millisUntilFinished)
+                updateTotalRemainingTime()
 
                 // Определяем текущую секунду
                 val currentSecond = millisUntilFinished / 1000
@@ -150,6 +161,7 @@ class TimerFragment : Fragment() {
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
+                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
                 }
             }
         }.start()
@@ -173,6 +185,7 @@ class TimerFragment : Fragment() {
             override fun onTick(millisUntilFinished: Long) {
                 timeRemaining = millisUntilFinished
                 updateTimerText(millisUntilFinished)
+                updateTotalRemainingTime()
 
                 // Определяем текущую секунду
                 val currentSecond = millisUntilFinished / 1000
@@ -194,6 +207,7 @@ class TimerFragment : Fragment() {
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
+                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
                 }
             }
         }.start()
@@ -222,6 +236,13 @@ class TimerFragment : Fragment() {
         binding.nextStepTextView1.setTextColor(defaultColor)
         binding.nextStepTextView2.setTextColor(defaultColor)
 
+        // Сбрасываем общее время
+        if (steps.isNotEmpty()) {
+            binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(totalWorkoutTime)}"
+        } else {
+            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+        }
+
         // Обновляем видимость кнопок
         binding.startButton.visibility = View.VISIBLE
         binding.pauseButton.visibility = View.GONE
@@ -234,7 +255,23 @@ class TimerFragment : Fragment() {
         val seconds = totalSeconds % 60
         val milliseconds = (millisUntilFinished % 1000) / 100
 
+        // Фиксируем ширину текста, используя моноширинный шрифт
         binding.timerText.text = String.format("%02d:%02d.%01d", minutes, seconds, milliseconds)
+    }
+
+    private fun updateTotalRemainingTime() {
+        if (currentStepIndex >= steps.size) {
+            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+            return
+        }
+
+        val remainingTime = timeRemaining + if (currentStepIndex + 1 < steps.size) {
+            precomputedSums!![currentStepIndex + 1]
+        } else {
+            0
+        }
+
+        binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(remainingTime)}"
     }
 
     private fun updateNextStepsInfo() {

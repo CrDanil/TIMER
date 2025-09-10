@@ -39,6 +39,8 @@ class WorkoutEditorFragment : Fragment() {
             elements = emptyList()
         )
 
+        updateTotalDuration()
+
         // Заполняем поля
         binding.workoutNameEditText.setText(currentWorkout.name)
         binding.workoutDescriptionEditText.setText(currentWorkout.description)
@@ -84,6 +86,10 @@ class WorkoutEditorFragment : Fragment() {
         }
     }
 
+    private fun updateTotalDuration() {
+        val totalDuration = calculateTotalDuration(currentWorkout.elements)
+        binding.totalDurationTextView.text = "Общее время: ${formatDuration(totalDuration)}"
+    }
 
     private fun saveWorkout() {
         val name = binding.workoutNameEditText.text.toString()
@@ -95,17 +101,19 @@ class WorkoutEditorFragment : Fragment() {
         currentWorkout = currentWorkout.copy(
             name = name,
             description = description,
-            // duration можно добавить в модель Workout, если нужно
+            elements = currentWorkout.elements
         )
 
         // Сохраняем в менеджер
         lifecycleScope.launch {
             WorkoutManager.saveWorkout(currentWorkout)
+
+            // Воспроизводим звук сохранения
+            SoundManager.playSaveSound()
+
+            // Показываем общую длительность
             Toast.makeText(requireContext(), "Тренировка сохранена. Общая длительность: ${formatDuration(totalDuration)}", Toast.LENGTH_SHORT).show()
         }
-
-        // Показываем общую длительность
-        Toast.makeText(requireContext(), "Тренировка сохранена. Общая длительность: ${formatDuration(totalDuration)}", Toast.LENGTH_SHORT).show()
     }
 
     private fun formatDuration(milliseconds: Long): String {
@@ -114,6 +122,7 @@ class WorkoutEditorFragment : Fragment() {
         val seconds = totalSeconds % 60
         return String.format("%02d:%02d", minutes, seconds)
     }
+
 
     private fun calculateTotalDuration(elements: List<WorkoutElement>): Long {
         var totalDuration = 0L
@@ -139,7 +148,8 @@ class WorkoutEditorFragment : Fragment() {
                     add(exercise)
                 }
                 currentWorkout = currentWorkout.copy(elements = updatedElements)
-                updateElementsList() // Теперь это просто обновляет существующий адаптер
+                updateElementsList()
+                updateTotalDuration() // Обновляем общее время
             }
         })
         dialog.show(parentFragmentManager, "AddExerciseDialog")
@@ -154,6 +164,7 @@ class WorkoutEditorFragment : Fragment() {
                 }
                 currentWorkout = currentWorkout.copy(elements = updatedElements)
                 updateElementsList()
+                updateTotalDuration() // Обновляем общее время
             }
         })
         dialog.show(parentFragmentManager, "AddBlockDialog")
@@ -178,7 +189,8 @@ class WorkoutEditorFragment : Fragment() {
                     }
                 }
                 currentWorkout = currentWorkout.copy(elements = updatedElements)
-                updateElementsList() // Обновляем существующий адаптер
+                updateElementsList()
+                updateTotalDuration() // Обновляем общее время
             }
         })
         dialog.show(parentFragmentManager, "EditExerciseDialog")
@@ -197,6 +209,7 @@ class WorkoutEditorFragment : Fragment() {
                 }
                 currentWorkout = currentWorkout.copy(elements = updatedElements)
                 updateElementsList()
+                updateTotalDuration() // Обновляем общее время
             }
         })
         dialog.show(parentFragmentManager, "EditBlockDialog")
@@ -211,7 +224,8 @@ class WorkoutEditorFragment : Fragment() {
                     removeAll { it.id == element.id }
                 }
                 currentWorkout = currentWorkout.copy(elements = updatedElements)
-                updateElementsList() // Обновляем существующий адаптер
+                updateElementsList()
+                updateTotalDuration() // Обновляем общее время
             }
             .setNegativeButton("Отмена", null)
             .show()
