@@ -23,6 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+
         android:layout_marginBottom="16dp">
 
         <com.google.android.material.textfield.TextInputLayout
@@ -39,7 +40,9 @@
                 android:inputType="number"
                 android:maxLength="2"
                 android:text="00"
+                android:gravity="center"
                 android:digits="0123456789"/>
+
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -66,6 +69,7 @@
                 android:inputType="number"
                 android:maxLength="2"
                 android:text="00"
+                android:gravity="center"
                 android:digits="0123456789"/>
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -77,7 +81,6 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="Формат: MM:SS (макс. 99:59)"
-        android:textColor="?attr/colorPrimary"
         android:textSize="12sp" />
 
     <TextView

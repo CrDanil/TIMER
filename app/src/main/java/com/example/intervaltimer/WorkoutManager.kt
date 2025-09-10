@@ -222,7 +222,7 @@ object WorkoutManager {
                             when (blockElement) {
                                 is Exercise -> {
                                     stepList.add(TimerStep(
-                                        "${element.name} (Раунд $round/${element.rounds}): ${blockElement.name}",
+                                        "${element.name} ($round/${element.rounds}): ${blockElement.name}",
                                         blockElement.type,
                                         blockElement.duration,
                                         blockElement.color

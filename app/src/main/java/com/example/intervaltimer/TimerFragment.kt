@@ -2,6 +2,7 @@ package com.example.intervaltimer
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Bundle
@@ -111,6 +112,10 @@ class TimerFragment : Fragment() {
         if (currentStepIndex >= steps.size) {
             // Тренировка завершена
             binding.timerText.text = "Готово!"
+            binding.timerText.setTextColor(Color.WHITE) //САМ
+            binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
+            binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
+            binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
             return
         }
 
@@ -158,10 +163,14 @@ class TimerFragment : Fragment() {
                 } else {
                     // Тренировка завершена
                     binding.timerText.text = "Готово!"
+                    binding.timerText.setTextColor(Color.WHITE) //САМ
+                    binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
+                    binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
+                    binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
-                    binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+                    binding.totalRemainingTimeTextView.text = "Всего: 00:00"
                 }
             }
         }.start()
@@ -203,7 +212,11 @@ class TimerFragment : Fragment() {
                 if (currentStepIndex < steps.size) {
                     startTimer()
                 } else {
+                    binding.currentStepNameTextView.setTextColor(Color.BLACK) //САМ
                     binding.timerText.text = "Готово!"
+                    binding.timerText.setTextColor(Color.WHITE) //САМ
+                    binding.nextStepTextView1.setTextColor(Color.BLACK) //САМ
+                    binding.nextStepTextView2.setTextColor(Color.BLACK) //САМ
                     binding.startButton.visibility = View.VISIBLE
                     binding.pauseButton.visibility = View.GONE
                     binding.stopButton.visibility = View.GONE
@@ -224,13 +237,14 @@ class TimerFragment : Fragment() {
         isPaused = false
 
         // Сбрасываем UI
-        binding.timerText.text = "00:00.0"
+        binding.timerText.text = "00:00" //.0" САМ
         binding.currentStepNameTextView.text = "Готовность"
+        //binding.currentStepNameTextView.setTextColor(Color.WHITE) //САМ
         binding.nextStepTextView1.text = "Следующее: "
         binding.nextStepTextView2.text = "После: "
 
         // Сбрасываем цвета к значениям по умолчанию
-        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.black)
+        val defaultColor = ContextCompat.getColor(requireContext(), android.R.color.white)
         binding.currentStepNameTextView.setTextColor(defaultColor)
         binding.timerText.setTextColor(defaultColor)
         binding.nextStepTextView1.setTextColor(defaultColor)
@@ -238,9 +252,9 @@ class TimerFragment : Fragment() {
 
         // Сбрасываем общее время
         if (steps.isNotEmpty()) {
-            binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(totalWorkoutTime)}"
+            binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(totalWorkoutTime)}"
         } else {
-            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
         }
 
         // Обновляем видимость кнопок
@@ -256,12 +270,13 @@ class TimerFragment : Fragment() {
         val milliseconds = (millisUntilFinished % 1000) / 100
 
         // Фиксируем ширину текста, используя моноширинный шрифт
-        binding.timerText.text = String.format("%02d:%02d.%01d", minutes, seconds, milliseconds)
+        //binding.timerText.text = String.format("%02d:%02d.%01d", minutes, seconds, milliseconds) // с милисекундами, десятыми
+        binding.timerText.text = String.format("%02d:%02d", minutes, seconds) // САМ
     }
 
     private fun updateTotalRemainingTime() {
         if (currentStepIndex >= steps.size) {
-            binding.totalRemainingTimeTextView.text = "Общее время: 00:00"
+            binding.totalRemainingTimeTextView.text = "Всего: 00:00"
             return
         }
 
@@ -271,7 +286,7 @@ class TimerFragment : Fragment() {
             0
         }
 
-        binding.totalRemainingTimeTextView.text = "Общее время: ${formatDuration(remainingTime)}"
+        binding.totalRemainingTimeTextView.text = "Всего: ${formatDuration(remainingTime)}"
     }
 
     private fun updateNextStepsInfo() {
@@ -284,7 +299,7 @@ class TimerFragment : Fragment() {
             binding.nextStepTextView1.setTextColor(nextStep1.color)
         } else {
             binding.nextStepTextView1.text = "Следующее: Конец тренировки"
-            binding.nextStepTextView1.setTextColor(defaultColor)
+            binding.nextStepTextView1.setTextColor(Color.WHITE)
         }
 
         // Второе следующее упражнение
@@ -294,7 +309,7 @@ class TimerFragment : Fragment() {
             binding.nextStepTextView2.setTextColor(nextStep2.color)
         } else {
             binding.nextStepTextView2.text = "После: Конец тренировки"
-            binding.nextStepTextView2.setTextColor(defaultColor)
+            binding.nextStepTextView2.setTextColor(Color.WHITE)
         }
     }
 

@@ -6,14 +6,6 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/editorTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Редактор тренировок"
-        android:textSize="24sp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"/>
-    <TextView
         android:id="@+id/totalDurationTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -69,31 +61,55 @@
         android:layout_weight="1"
         android:layout_marginBottom="16dp"/>
 
-    <Button
-        android:id="@+id/addElementButton"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Добавить элемент"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="80dp"
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/addBlockButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Добавить блок"
-        android:layout_marginBottom="16dp"/>
+        <Button
+            android:id="@+id/addElementButton"
+            android:layout_width="174dp"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="16dp"
+            android:text="Добавить\nэлемент" />
 
-    <Button
-        android:id="@+id/saveWorkoutButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Сохранить тренировку"/>
+        <Space
+            android:layout_width="37dp"
+            android:layout_height="38dp"
+            android:layout_weight="1" />
 
-    <Button
-        android:id="@+id/startWorkoutButton"
+        <Button
+            android:id="@+id/addBlockButton"
+            android:layout_width="180dp"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="16dp"
+            android:text="Добавить\nблок" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Начать тренировку"
-        android:layout_marginTop="16dp"/>
+        android:layout_height="80dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/saveWorkoutButton"
+            android:layout_width="174dp"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="16dp"
+            android:text="Сохранить\nтренировку" />
+
+        <Space
+            android:layout_width="37dp"
+            android:layout_height="38dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/startWorkoutButton"
+            android:layout_width="180dp"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="16dp"
+            android:text="Начать\nтренировку" />
+
+    </LinearLayout>
 
 </LinearLayout>
